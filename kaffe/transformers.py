@@ -74,7 +74,7 @@ class DataInjector(object):
         data = list(data)
         # Only squeeze biases if there are biases
         squeeze_indices = []
-        if node.kind == NodeKind.Convolution or node.kind == NodeKind.InnerProduct:
+        if node.kind in (NodeKind.Convolution, NodeKind.Deconvolution, NodeKind.InnerProduct):
             if node.parameters.bias_term:
                 squeeze_indices.append(1)
             if node.kind == NodeKind.InnerProduct:
@@ -278,7 +278,7 @@ class ParameterNamer(object):
         for node in graph.nodes:
             if node.data is None:
                 continue
-            if node.kind in (NodeKind.Convolution, NodeKind.InnerProduct):
+            if node.kind in (NodeKind.Convolution, NodeKind.Deconvolution, NodeKind.InnerProduct):
                 names = ('weights',)
                 if node.parameters.bias_term:
                     names += ('biases',)
