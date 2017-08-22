@@ -168,7 +168,7 @@ class TensorFlowMapper(NodeMapper):
         return TensorFlowNode('reshape', )
 
     def map_batch_norm(self, node):
-        scale_offset = len(node.data) == 4
+        scale_offset = node.data and len(node.data) == 4
         kwargs = {} if scale_offset else {'scale_offset': False}
         return MaybeActivated(node, default=False)('batch_normalization', **kwargs)
 
