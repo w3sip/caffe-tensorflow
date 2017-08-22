@@ -12,3 +12,7 @@
 .project
 
 .pydevproject
+
+*.npy
+
+*.gz
