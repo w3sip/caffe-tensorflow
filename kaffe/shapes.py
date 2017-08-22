@@ -41,7 +41,7 @@ def shape_data(node):
         # Old-style input specification
         val = node.output_shape
         if len(val) < 4:
-           return list(val) + [1] * (4 - len(val))
+            return list(val) + [1] * (4 - len(val))
         return val
     try:
         # New-style input specification
