@@ -39,7 +39,10 @@ def shape_scalar(node):
 def shape_data(node):
     if node.output_shape:
         # Old-style input specification
-        return node.output_shape
+        val = node.output_shape
+        if len(val) < 4:
+           return list(val) + [1] * (4 - len(val))
+        return val
     try:
         # New-style input specification
         return map(int, node.parameters.shape[0].dim)
@@ -53,6 +56,9 @@ def shape_data(node):
         raise KaffeError('Cannot determine dimensions of data layer.\n'
                          'See comments in function shape_data for more info.')
 
+def shape_reshape(node):
+    dims = node.parameters.shape.dim
+    return TensorShape(dims[0], dims[1], dims[2], dims[3])
 
 def shape_mem_data(node):
     params = node.parameters

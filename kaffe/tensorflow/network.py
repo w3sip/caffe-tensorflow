@@ -145,6 +145,64 @@ class Network(object):
             return output
 
     @layer
+    def deconv(self,
+             input,
+             k_h,
+             k_w,
+             c_o,
+             s_h,
+             s_w,
+             name,
+             relu=True,
+             padding=DEFAULT_PADDING,
+             group=1,
+             biased=True):
+        # Verify that the padding is acceptable
+        self.validate_padding(padding)
+        # Get the number of channels in the input
+        c_i = input.get_shape()[-1]
+        # Verify that the grouping parameter is valid
+        assert c_i % group == 0
+        assert c_o % group == 0
+        # Convolution for a given input and kernel
+        stride_shape = [1, s_h, s_w, 1]
+        kernel_shape = [k_h, k_w, c_i, c_o]
+        input_shape = input.get_shape()
+        out_shape = []
+        for i in range(len(input.get_shape())):
+            kernel_i= kernel_shape[i]
+            stride_i = stride_shape[i]
+            input_i = input_shape[i]
+            if padding == 'SAME':   
+                out_shape.append(Math.ceil((input_i) / float(stride_i) ))
+            else:
+                out_shape.append(Math.ceil((input_i - kernel_i + 1) / float(stride_i) ))
+            
+            #out_shape.append(Math.floor((input_i + 2 * pad_i - kernel_i) / float(stride_i) + 1))
+        deconv = lambda i, k: tf.nn.conv2d_transpose(i, k, output_shape=out_shape, strides=stride_shape, padding=padding)
+        with tf.variable_scope(name) as scope:
+            kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
+            if group == 1:
+                # This is the common-case. Convolve the input without any further complications.
+                output = deconv(input, kernel)
+            else:
+                raise NotImplementedError('Multiple groups not supported for deconvolution operations')
+                # Split the input into groups and then convolve each of them independently
+                input_groups = tf.split(3, group, input)
+                kernel_groups = tf.split(3, group, kernel)
+                output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
+                # Concatenate the groups
+                output = tf.concat(3, output_groups)
+            # Add the biases
+            if biased:
+                biases = self.make_var('biases', [c_o])
+                output = tf.nn.bias_add(output, biases)
+            if relu:
+                # ReLU non-linearity
+                output = tf.nn.relu(output, name=scope.name)
+            return output
+
+    @layer
     def relu(self, input, name):
         return tf.nn.relu(input, name=name)
 
@@ -182,6 +240,10 @@ class Network(object):
     @layer
     def add(self, inputs, name):
         return tf.add_n(inputs, name=name)
+
+    @layer
+    def reshape(self, inputs, shape, name):
+        return tf.shape(inputs, shape, name=name)
 
     @layer
     def fc(self, input, num_out, name, relu=True):
