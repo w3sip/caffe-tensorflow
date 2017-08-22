@@ -72,9 +72,13 @@ class DataInjector(object):
         # potential for future issues.
         # The Caffe-backend does not suffer from this problem.
         data = list(data)
-        squeeze_indices = [1]  # Squeeze biases.
-        if node.kind == NodeKind.InnerProduct:
-            squeeze_indices.append(0)  # Squeeze FC.
+        # Only squeeze biases if there are biases
+        squeeze_indices = []
+        if node.kind == NodeKind.Convolution or node.kind == NodeKind.InnerProduct:
+            if node.parameters.bias_term:
+                squeeze_indices.append(1)
+            if node.kind == NodeKind.InnerProduct:
+                squeeze_indices.append(0)  # Squeeze FC.
         for idx in squeeze_indices:
             data[idx] = np.squeeze(data[idx])
         return data
