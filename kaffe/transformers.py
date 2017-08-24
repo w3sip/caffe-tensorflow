@@ -122,6 +122,8 @@ class DataReshaper(object):
         for node in graph.nodes:
             if node.data is None:
                 continue
+            if node.kind == NodeKind.BatchNorm:
+                continue
             if node.kind not in self.reshaped_node_types:
                 # Check for 2+ dimensional data
                 if any(len(tensor.shape) > 1 for tensor in node.data):
