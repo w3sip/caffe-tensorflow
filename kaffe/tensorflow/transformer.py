@@ -77,10 +77,13 @@ class MaybeActivated(object):
 
 class TensorFlowMapper(NodeMapper):
 
-    def get_kernel_params(self, node):
+    def get_kernel_params(self, node, is_deconvolution = False):
         kernel_params = node.layer.kernel_parameters
         input_shape = node.get_only_parent().output_shape
-        padding = get_padding_type(kernel_params, input_shape, node.output_shape)
+        # Reverse the input and output shapes when determining padding type for deconvolution
+        big_shape = node.output_shape if is_deconvolution else input_shape
+        little_shape = input_shape if is_deconvolution else node.output_shape
+        padding = get_padding_type(kernel_params, big_shape, little_shape)
         # Only emit the padding if it's not the default value.
         padding = {'padding': padding} if padding != network.DEFAULT_PADDING else {}
         return (kernel_params, padding)
@@ -102,7 +105,7 @@ class TensorFlowMapper(NodeMapper):
                                     kernel_params.stride_h, kernel_params.stride_w, **kwargs)
 
     def map_deconvolution(self, node):
-        (kernel_params, kwargs) = self.get_kernel_params(node)
+        (kernel_params, kwargs) = self.get_kernel_params(node, True)
         h = kernel_params.kernel_h
         w = kernel_params.kernel_w
         c_o = node.output_shape[1]
