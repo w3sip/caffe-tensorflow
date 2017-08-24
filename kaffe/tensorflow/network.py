@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import tensorflow as tf
 
@@ -174,15 +175,20 @@ class Network(object):
         input_shape = input.get_shape()
         out_shape = []
         for i in range(len(input.get_shape())):
-            kernel_i= kernel_shape[i]
-            stride_i = stride_shape[i]
-            input_i = input_shape[i]
-            if padding == 'SAME':   
-                out_shape.append(Math.ceil((input_i) / float(stride_i) ))
+            if i == 3:
+                # This is the split dimension
+                dim_i = 1
             else:
-                out_shape.append(Math.ceil((input_i - kernel_i + 1) / float(stride_i) ))
-            
-            #out_shape.append(Math.floor((input_i + 2 * pad_i - kernel_i) / float(stride_i) + 1))
+                kernel_i= kernel_shape[i]
+                stride_i = stride_shape[i]
+                input_i = input_shape[i]
+                if padding == 'SAME':
+                    dim_i = (input_i * stride_i).value                
+                else:
+                    dim_i = (input_i * stride_i + kernel_i - 1).value
+            # Code deep in conv2d_transpose cannot convert a list with None to a Tensor, so use -1 instead
+            out_shape.append(-1 if dim_i is None else dim_i)
+        
         deconv = lambda i, k: tf.nn.conv2d_transpose(i, k, output_shape=out_shape, strides=stride_shape, padding=padding)
         with tf.variable_scope(name) as scope:
             kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
@@ -190,13 +196,12 @@ class Network(object):
                 # This is the common-case. Convolve the input without any further complications.
                 output = deconv(input, kernel)
             else:
-                raise NotImplementedError('Multiple groups not supported for deconvolution operations')
                 # Split the input into groups and then convolve each of them independently
-                input_groups = tf.split(3, group, input)
-                kernel_groups = tf.split(3, group, kernel)
-                output_groups = [convolve(i, k) for i, k in zip(input_groups, kernel_groups)]
+                input_groups = tf.split(input, group, axis=3)
+                kernel_groups = tf.split(kernel, group, axis=3)
+                output_groups = [deconv(i, k) for i, k in zip(input_groups, kernel_groups)]
                 # Concatenate the groups
-                output = tf.concat(3, output_groups)
+                output = tf.concat(output_groups, axis=3)
             # Add the biases
             if biased:
                 biases = self.make_var('biases', [c_o])
@@ -239,7 +244,7 @@ class Network(object):
 
     @layer
     def concat(self, inputs, axis, name):
-        return tf.concat(concat_dim=axis, values=inputs, name=name)
+        return tf.concat(axis=axis, values=inputs, name=name)
 
     @layer
     def add(self, inputs, name):
