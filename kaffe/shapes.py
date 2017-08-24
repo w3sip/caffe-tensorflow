@@ -14,8 +14,8 @@ def get_filter_output_shape_fn(round_func):
     return get_filter_output_shape
 
 def get_upsampling_output_shape(i_h, i_w, params):
-    o_h = (i_h + 2 * params.pad_h - params.kernel_h + 2) * params.stride_h
-    o_w = (i_w + 2 * params.pad_w - params.kernel_w + 2) * params.stride_w
+    o_h = (i_h - 1) * params.stride_h - 2 * params.pad_h + params.kernel_h
+    o_w = (i_w - 1) * params.stride_w - 2 * params.pad_w + params.kernel_w
     return o_h, o_w
 
 def get_strided_kernel_output_shape(node, output_shape_func):
