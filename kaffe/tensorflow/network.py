@@ -113,7 +113,8 @@ class Network(object):
              relu=True,
              padding=DEFAULT_PADDING,
              group=1,
-             biased=True):
+             biased=True,
+             dilation=1):
         # Verify that the padding is acceptable
         self.validate_padding(padding)
         # Get the number of channels in the input
@@ -122,7 +123,10 @@ class Network(object):
         assert c_i % group == 0
         assert c_o % group == 0
         # Convolution for a given input and kernel
-        convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
+        if dilation > 1:
+            convolve = lambda i, k: tf.nn.atrous_conv2d(i, k, dilation, padding=padding)
+        else:
+            convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
         with tf.variable_scope(name) as scope:
             kernel = self.make_var('weights', shape=[k_h, k_w, c_i / group, c_o])
             if group == 1:
@@ -166,7 +170,7 @@ class Network(object):
         assert c_o % group == 0
         # Convolution for a given input and kernel
         stride_shape = [1, s_h, s_w, 1]
-        kernel_shape = [k_h, k_w, c_i, c_o]
+        kernel_shape = [c_i, k_h, k_w, c_o]
         input_shape = input.get_shape()
         out_shape = []
         for i in range(len(input.get_shape())):

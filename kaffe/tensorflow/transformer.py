@@ -90,6 +90,9 @@ class TensorFlowMapper(NodeMapper):
 
     def map_convolution(self, node):
         (kernel_params, kwargs) = self.get_kernel_params(node)
+        dilation = node.layer.get_kernel_value(None, node.parameters.dilation, 0, default = 1)
+        if dilation != 1:
+            kwargs['dilation'] = dilation
         h = kernel_params.kernel_h
         w = kernel_params.kernel_w
         c_o = node.output_shape[1]
