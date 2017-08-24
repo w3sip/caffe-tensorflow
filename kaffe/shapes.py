@@ -6,10 +6,12 @@ from .errors import KaffeError
 TensorShape = namedtuple('TensorShape', ['batch_size', 'channels', 'height', 'width'])
 
 
-def get_filter_output_shape_fn(round_func):
+def get_filter_output_shape_fn(round_func, dilation = 1):
     def get_filter_output_shape(i_h, i_w, params):
-        o_h = (i_h + 2 * params.pad_h - params.kernel_h) / float(params.stride_h) + 1
-        o_w = (i_w + 2 * params.pad_w - params.kernel_w) / float(params.stride_w) + 1
+        effective_pad_h = params.pad_h / dilation
+        effective_pad_w = params.pad_w / dilation
+        o_h = (i_h + 2 * effective_pad_h - params.kernel_h) / float(params.stride_h) + 1
+        o_w = (i_w + 2 * effective_pad_w - params.kernel_w) / float(params.stride_w) + 1
         return (int(round_func(o_h)), int(round_func(o_w)))
     return get_filter_output_shape
 
@@ -83,7 +85,8 @@ def shape_concat(node):
 
 
 def shape_convolution(node):
-    return get_strided_kernel_output_shape(node, get_filter_output_shape_fn(math.floor))
+    dilation = node.layer.get_kernel_value(None, node.parameters.dilation, 0, default = 1)
+    return get_strided_kernel_output_shape(node, get_filter_output_shape_fn(math.floor, dilation))
 
 def shape_deconvolution(node):
     return get_strided_kernel_output_shape(node, get_upsampling_output_shape)
