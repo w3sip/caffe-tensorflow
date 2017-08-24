@@ -143,7 +143,7 @@ class LayerAdapter(object):
         s_h = self.get_kernel_value(params.stride_h, params.stride, 0, default=1)
         s_w = self.get_kernel_value(params.stride_w, params.stride, 1, default=1)
         p_h = self.get_kernel_value(params.pad_h, params.pad, 0, default=0)
-        p_w = self.get_kernel_value(params.pad_h, params.pad, 1, default=0)
+        p_w = self.get_kernel_value(params.pad_w, params.pad, 1, default=0)
         return KernelParameters(k_h, k_w, s_h, s_w, p_h, p_w)
 
 
