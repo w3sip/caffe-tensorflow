@@ -287,7 +287,7 @@ class Network(object):
     def batch_normalization(self, input, name, scale_offset=True, relu=False):
         # NOTE: Currently, only inference is supported
         with tf.variable_scope(name) as scope:
-            shape = [input.get_shape()[-1]]
+            shape = [1, 1, 1, input.get_shape()[-1].value]
             if scale_offset:
                 scale = self.make_var('scale', shape=shape)
                 offset = self.make_var('offset', shape=shape)
