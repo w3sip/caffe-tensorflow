@@ -281,8 +281,7 @@ class Network(object):
             # in TensorFlow's NHWC ordering (unlike Caffe's NCHW).
             if input_shape[1] == 1 and input_shape[2] == 1:
                 input = tf.squeeze(input, squeeze_dims=[1, 2])
-            else:
-                raise ValueError('Rank 2 tensor input expected for softmax!')
+            
         return tf.nn.softmax(input, name=name)
 
     @layer
