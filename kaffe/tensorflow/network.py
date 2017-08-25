@@ -2,6 +2,7 @@ import math
 import numpy as np
 import tensorflow as tf
 
+BATCH_SIZE = 4 # Only used for deconvolution
 DEFAULT_PADDING = 'SAME'
 
 
@@ -173,21 +174,19 @@ class Network(object):
         stride_shape = [1, s_h, s_w, 1]
         kernel_shape = [c_i, k_h, k_w, c_o]
         input_shape = input.get_shape()
-        out_shape = []
-        for i in range(len(input.get_shape())):
-            if i == 3:
-                # This is the split dimension
-                dim_i = 1
+        # Code deep in conv2d_transpose cannot convert a list with None to a Tensor, so we need to specify batch size
+        out_shape = [BATCH_SIZE]
+        for i in range(1,3):
+            kernel_i= kernel_shape[i]
+            stride_i = stride_shape[i]
+            input_i = input_shape[i]
+            if padding == 'SAME':
+                out_shape.append((input_i * stride_i).value)               
             else:
-                kernel_i= kernel_shape[i]
-                stride_i = stride_shape[i]
-                input_i = input_shape[i]
-                if padding == 'SAME':
-                    dim_i = (input_i * stride_i).value                
-                else:
-                    dim_i = (input_i * stride_i + kernel_i - 1).value
-            # Code deep in conv2d_transpose cannot convert a list with None to a Tensor, so use -1 instead
-            out_shape.append(-1 if dim_i is None else dim_i)
+                out_shape.append((input_i * stride_i + kernel_i - 1).value)
+        
+        # We specify 1 in the last index, since that is the split dimension below
+        out_shape.append(1)
         
         deconv = lambda i, k: tf.nn.conv2d_transpose(i, k, output_shape=out_shape, strides=stride_shape, padding=padding)
         with tf.variable_scope(name) as scope:
