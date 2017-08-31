@@ -114,15 +114,31 @@ class Graph(object):
         return key in self.node_lut
 
     def __str__(self):
-        hdr = '{:<20} {:<30} {:>20} {:>20}'.format('Type', 'Name', 'Param', 'Output')
-        s = [hdr, '-' * 94]
+        # Activations means output activations
+        hdr = '{:<20} {:<30} {:>20} {:>20} {:>20} {:>20}'.format('Type', 'Name', 'Param', 'Output', '# Activations', 'Activations kB')
+        s = [hdr, '-' * 135]
+        total_activation_count = 0
+        total_activation_MB = 0.0
+        missing_activations = False
         for node in self.topologically_sorted():
             # If the node has learned parameters, display the first one's shape.
             # In case of convolutions, this corresponds to the weights.
             data_shape = node.data[0].shape if node.data else '--'
-            out_shape = node.output_shape or '--'
-            s.append('{:<20} {:<30} {:>20} {:>20}'.format(node.kind, node.name, data_shape,
-                                                          tuple(out_shape)))
+            if node.output_shape:
+                out_shape = tuple(node.output_shape)
+                activation_count = reduce(lambda x, y: x*y, out_shape)
+                activation_kB = activation_count * 4 / float(2**10) # assume four bytes per activation
+                total_activation_count += activation_count
+                total_activation_MB += activation_kB / float(2**10)
+            else:
+                out_shape = '--'
+                activation_count = '--'
+                activation_kB = '--'
+                missing_activations = True
+            s.append('{:<20} {:<30} {:>20} {:>20} {:>20} {:>20.2f}'.format(node.kind, node.name, data_shape, out_shape, activation_count, activation_kB))
+        s.append('Total activation count: %d %s' % (total_activation_count, '(incomplete)' if missing_activations else ''))
+        s.append('Total activation MB: %.2f %s' % (total_activation_MB, '(incomplete)' if missing_activations else ''))
+        
         return '\n'.join(s)
 
 
